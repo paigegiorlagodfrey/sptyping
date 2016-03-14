@@ -13,7 +13,7 @@ from itertools import cycle
 import astrotools as a	
 import pickle	
 	
-def showme(short_name,extraction,band,chisquare,object,output_sorted):	
+def showme(short_name,extraction,band,chisquare,object,output_sorted,constraint_on_pfit,order):	
 	'''The plotting code for the spectral typing reduced chi squared routine. This code makes the figure used in the paper
 	output_sorted=[chilist,namelist,specidlist,sptlist,templist]
 	'''
@@ -24,10 +24,12 @@ def showme(short_name,extraction,band,chisquare,object,output_sorted):
 	ax1 = plt.subplot(gs[0])
    	Ts=['L9','T0','T1','T2','T3','T4','T5','T6','T7','T8','T9']
 	plt.scatter(chisquare[0],chisquare[1])
+
 	chisquare=zip(*sorted(zip(*chisquare)))
-	pfit = np.polyfit(chisquare[0],chisquare[1], 3)   # Fit a 3rd order polynomial to (x, y) data
-	yfit = np.polyval(pfit, chisquare[0])   # Evaluate the polynomial at x
-	plt.plot(chisquare[0], yfit)
+	
+	yfit,chisquare = m.polynomialfit(chisquare,constraint_on_pfit,order)
+ 	plt.plot(chisquare[0], yfit)
+
 	ax1.set_xlim(19.8,29.2)
  	plt.locator_params(axis = 'x', nbins = 11)
  	ax1.set_xticklabels(Ts)
@@ -88,6 +90,6 @@ def showme(short_name,extraction,band,chisquare,object,output_sorted):
 	plt.ylabel(r' Normalized Flux Density', fontsize="x-large")
 	plt.tick_params(labelsize="large")
  	plt.ylim(0.001,1.1)
- 	plt.xlim(min(object[0])-0.1,max(object[0])+0.1)
+ 	plt.xlim(min(object[0])-0.01,max(object[0])+0.01)
 
-	plt.savefig('/Users/paigegiorla/Code/Python_modules/Publications/'+'{}'.format(short_name)+'/Images/{}_'.format(short_name)+'{}'.format(extraction)+'{}'.format(band)+'.eps')
+	plt.savefig('/Users/paigegiorla/Publications/'+'{}'.format(short_name)+'/Images/{}_'.format(short_name)+'{}'.format(extraction)+'{}'.format(band)+'.eps')
