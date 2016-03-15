@@ -13,22 +13,34 @@ from itertools import cycle
 import astrotools as a	
 import pickle	
 	
-def showme(short_name,extraction,band,chisquare,object,output_sorted,constraint_on_pfit,order):	
+def showme(short_name,extraction,band,chisquare,object,output_table,constraint_on_pfit,order,avg_arr=[]):	
 	'''The plotting code for the spectral typing reduced chi squared routine. This code makes the figure used in the paper
-	output_sorted=[chilist,namelist,specidlist,sptlist,templist]
+	output_table=[chilist,namelist,specidlist,sptlist,templist] astropy table
+	If you want to plot the averages of the chisquare values, then run chisquare through m.average_chisq() first and provide here
 	'''
 	plt.figure(figsize=(8,10))
 	gs = gridspec.GridSpec(2, 1, height_ratios=[1,2]) 
 
 # plot the chi square values vs spec type with polynomial fit
 	ax1 = plt.subplot(gs[0])
-   	Ts=['L9','T0','T1','T2','T3','T4','T5','T6','T7','T8','T9']
-	plt.scatter(chisquare[0],chisquare[1])
+	Ts=['L9','T0','T1','T2','T3','T4','T5','T6','T7','T8','T9']
+
+	if avg_arr:
+		plt.scatter(chisquare[0],chisquare[1],color='gray')
+		plt.scatter(avg_arr[0],avg_arr[1],color='k')
+	else:
+		plt.scatter(chisquare[0],chisquare[1],color='k')
 
 	chisquare=zip(*sorted(zip(*chisquare)))
 	
-	yfit,chisquare = m.polynomialfit(chisquare,constraint_on_pfit,order)
- 	plt.plot(chisquare[0], yfit)
+	if isinstance(order,list):
+		pfit_1,yfit_1,chisquare_1 = m.polynomialfit(chisquare,constraint_on_pfit[0],order[0])
+		pfit_2,yfit_2,chisquare_2 = m.polynomialfit(chisquare,constraint_on_pfit[1],order[1])
+ 		plt.plot(chisquare_1[0], yfit_1,'b')
+ 		plt.plot(chisquare_2[0], yfit_2,'r')
+	else:
+		pfit,yfit,chisquare = m.polynomialfit(chisquare,constraint_on_pfit,order)
+ 		plt.plot(chisquare[0], yfit,'b')
 
 	ax1.set_xlim(19.8,29.2)
  	plt.locator_params(axis = 'x', nbins = 11)
@@ -45,21 +57,21 @@ def showme(short_name,extraction,band,chisquare,object,output_sorted,constraint_
 
 
 # plot a spectrum from half and one plus/minus the spectral type of the best fitting template and one earlier and later types for show
-	half, one, two = [output_sorted[0][3] + 0.5, output_sorted[0][3] - 0.5], [output_sorted[0][3] + 1, output_sorted[0][3] - 1], [output_sorted[0][3] + 2.0, output_sorted[0][3] - 2.0]
+	half, one, two = [output_table[0][3] + 0.5, output_table[0][3] - 0.5], [output_table[0][3] + 1, output_table[0][3] - 1], [output_table[0][3] + 2.0, output_table[0][3] - 2.0]
 	
-	half_plus=output_sorted[next(n for n in range(len(output_sorted)) if output_sorted[n][3]==half[0])]
+	half_plus=output_table[next(n for n in range(len(output_table)) if output_table[n][3]==half[0])]
 	designation_hp=db.list("select names from sources where id={}".format(half_plus[1])).fetchone()
-	half_minus=output_sorted[next(n for n in range(len(output_sorted)) if output_sorted[n][3]==half[1])]
+	half_minus=output_table[next(n for n in range(len(output_table)) if output_table[n][3]==half[1])]
 	designation_hm=db.list("select names from sources where id={}".format(half_minus[1])).fetchone()
 	
-	one_plus=output_sorted[next(n for n in range(len(output_sorted)) if output_sorted[n][3]==one[0])]
+	one_plus=output_table[next(n for n in range(len(output_table)) if output_table[n][3]==one[0])]
 	designation_op=db.list("select names from sources where id={}".format(one_plus[1])).fetchone()
-	one_minus=output_sorted[next(n for n in range(len(output_sorted)) if output_sorted[n][3]==one[1])]
+	one_minus=output_table[next(n for n in range(len(output_table)) if output_table[n][3]==one[1])]
 	designation_om=db.list("select names from sources where id={}".format(one_minus[1])).fetchone()
 	
-	two_plus=output_sorted[next(n for n in range(len(output_sorted)) if output_sorted[n][3]==two[0])]
+	two_plus=output_table[next(n for n in range(len(output_table)) if output_table[n][3]==two[0])]
 	designation_tp=db.list("select names from sources where id={}".format(two_plus[1])).fetchone()
-	two_minus=output_sorted[next(n for n in range(len(output_sorted)) if output_sorted[n][3]==two[1])]
+	two_minus=output_table[next(n for n in range(len(output_table)) if output_table[n][3]==two[1])]
 	designation_tm=db.list("select names from sources where id={}".format(two_minus[1])).fetchone()
 
 	spectype=u.specType(two_minus[3])
@@ -72,9 +84,9 @@ def showme(short_name,extraction,band,chisquare,object,output_sorted,constraint_
 	plt.plot(half_minus[4][0],half_minus[4][1],linestyle='--',color='#000080',linewidth=1.5,label='{}, {}'.format(spectype,designation_hm[0].split(',')[0]))
 
 # plot the best fitting spectrum template 	
-	designation=db.list("select names from sources where id={}".format(output_sorted[0][1])).fetchone()
-	spectype=u.specType(output_sorted[0][3])	
-	plt.plot(output_sorted[0][4][0],output_sorted[0][4][1],color='r', linewidth=2,label='{}, {}'.format(spectype,designation[0].split(',')[0]))
+	designation=db.list("select names from sources where id={}".format(output_table[0][1])).fetchone()
+	spectype=u.specType(output_table[0][3])	
+	plt.plot(output_table[0][4][0],output_table[0][4][1],color='r', linewidth=2,label='{}, {}'.format(spectype,designation[0].split(',')[0]))
 
 	spectype=u.specType(half_plus[3])
 	plt.plot(half_plus[4][0],half_plus[4][1],linestyle='--',color='#004C00',linewidth=1.5,label='{}, {}'.format(spectype,designation_hp[0].split(',')[0]))
@@ -93,3 +105,6 @@ def showme(short_name,extraction,band,chisquare,object,output_sorted,constraint_
  	plt.xlim(min(object[0])-0.01,max(object[0])+0.01)
 
 	plt.savefig('/Users/paigegiorla/Publications/'+'{}'.format(short_name)+'/Images/{}_'.format(short_name)+'{}'.format(extraction)+'{}'.format(band)+'.eps')
+	
+	if isinstance(order,int):
+	 	return pfit,yfit
