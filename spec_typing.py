@@ -12,6 +12,7 @@ from matplotlib import gridspec
 from itertools import cycle
 import astrotools as a
 import pickle
+from astropy.table import Table
 
 def scrub(data):
   '''
@@ -40,12 +41,13 @@ def showme(filepath,short_name,extraction,plot=False):
 		flu=float(columns[1])
 		un=float(columns[2])
 		W_obj.append(wav) ; F_obj.append(flu) ; U_obj.append(un)
-	
+	if W_obj[0]>10:
+		W_obj = [W_obj[i]/1000. for i in range(len(W_obj))]
+
 	maxFobj=max(F_obj)
 	F_obj=[F_obj[i]/maxFobj for i in range(len(F_obj))]
 	U_obj=[U_obj[i]/maxFobj for i in range(len(U_obj))]
 	object=[W_obj,F_obj,U_obj]
-
 
 
 #!	get source_id for all T dwarfs from database, turn it into a list and use list to get spectra_id for each source's spex data	
@@ -92,9 +94,8 @@ def showme(filepath,short_name,extraction,plot=False):
 		if plot==True:
 			plt.plot(temp[0],temp[1])
 			plt.plot(template[0],template[1])			
-			plt.savefig('/Users/paigegiorla/Code/Python_modules/Publications/'+'{}'.format(short_name)+'/Images/original_over_template/original_template_'+'{}'.format(j)+'.pdf')
-			plt.clf()	
-			
+			plt.savefig('/Users/paigegiorla/Publications/'+'{}'.format(short_name)+'/Images/original_over_template/{}'.format(extraction)+'/{}'.format(j)+'.pdf')
+			plt.clf()		
 		a=float(sum(object[1]*template[1]/((template[2]**2)+(object[2]**2))))
 		b=float(sum(template[1]*template[1]/((template[2]**2)+(object[2]**2))))
 		c=a/b
@@ -108,7 +109,7 @@ def showme(filepath,short_name,extraction,plot=False):
 			plt.scatter(template[0],template[1], color='red')
 			plt.scatter(object[0],object[1], color='blue')
 			plt.xlim(1.14,1.8)
-			plt.savefig('/Users/paigegiorla/Code/Python_modules/Publications/'+'{}'.format(short_name)+'/Images/template_over_object/template_object_'+'{}'.format(j)+'.pdf')
+			plt.savefig('/Users/paigegiorla/Publications/'+'{}'.format(short_name)+'/Images/template_over_object/{}'.format(extraction)+'/{}'.format(j)+'.pdf')
 			plt.clf()
 
 		chi=sum(((template[1]-object[1])**2)/((template[2]**2)+(object[2]**2)))/dof     	#both data sets have uncertainties
@@ -118,13 +119,16 @@ def showme(filepath,short_name,extraction,plot=False):
 		specidlist.append(j)
 		templist.append(template)
 
-	output=[chilist,namelist,specidlist,sptlist,templist]
-	pickle.dump(output,open('/Users/paigegiorla/Code/Python_modules/Publications/'+'{}'.format(short_name)+'/Results/output_results.pkl','wb'))
-	output_sorted=sorted(zip(*output))
-	chisquare=[sptlist,chilist]	
-	print "min chi value = ", output_sorted[0][0]
-	print "spectral type = ", output_sorted[0][3]
-	print "source id = ", output_sorted[0][1]
-	print "spectrum id = ", output_sorted[0][2]
 
-	return chisquare, object, output_sorted
+ 	output = [chilist,namelist,specidlist,sptlist,templist]
+	output_sorted = zip(*sorted(zip(*output)))
+	output_table = Table([output_sorted[0],output_sorted[1],output_sorted[2],output_sorted[3],output_sorted[4]],names=('chi_values','source_id','spectra_id','spectral_types','template'), meta={'name':'results from GOF'})
+	pickle.dump(output,open('/Users/paigegiorla/Publications/'+'{}'.format(short_name)+'/Results/{}'.format(extraction)+'.pkl','wb'))
+	chisquare=[sptlist,chilist]	
+	print "min chi value = ", output_table[0][0]
+	print "spectral type = ", output_table[0][3]
+	print "source id = ", output_table[0][1]
+	print "spectrum id = ", output_table[0][2]
+
+	
+	return chisquare, object, output_table
