@@ -23,7 +23,7 @@ def scrub(data):
   data = [i[np.unique(data[0], return_index=True)[1]] for i in data]
   return [i[np.lexsort([data[0]])] for i in data]
   
-def showme(filepath,short_name,extraction,plot=False):
+def showme(filepath,short_name,extraction,plot=False, M_type= False, L_type=False, T_type=True, Y_type=False,):
 	'''
 		This code will bin down all T dwarfs in database to the wavelength range and resolution of the object called in to question. 
 		It returns the list of the spectral types of all of the T dwarf templates, and their corresponding reduced chi squared fit value.
@@ -51,7 +51,18 @@ def showme(filepath,short_name,extraction,plot=False):
 
 
 #!	get source_id for all T dwarfs from database, turn it into a list and use list to get spectra_id for each source's spex data	
-	sources=db.list("select distinct source_id from spectral_types where spectral_type>=20 and spectral_type<=30 and regime='IR' and adopted=1").fetchall()
+ 	M, L, T, Y = [],[],[],[]
+	if M_type==True:
+			M = db.list("select distinct source_id from spectral_types where spectral_type>=0 and spectral_type<=9 and regime='IR' and adopted=1").fetchall()
+	if L_type==True:
+			L = db.list("select distinct source_id from spectral_types where spectral_type>=10 and spectral_type<=19 and regime='IR' and adopted=1").fetchall()
+	if T_type==True:
+			T = db.list("select distinct source_id from spectral_types where spectral_type>=20 and spectral_type<=29 and regime='IR' and adopted=1").fetchall()
+	if Y_type==True:
+			Y = db.list("select distinct source_id from spectral_types where spectral_type>=30 and spectral_type<=39 and regime='IR' and adopted=1").fetchall()
+	sources = M + L + T +  Y
+
+# 	sources=db.list("select distinct source_id from spectral_types where spectral_type>=20 and spectral_type<=30 and regime='IR' and adopted=1").fetchall()
 	sourcelist, ids, idlist=[],[],[]
 	index=0
 	while index<len(sources):
@@ -68,7 +79,7 @@ def showme(filepath,short_name,extraction,plot=False):
 		index=index+1		
 
 #!	loop through each object
-	chisquare, chilist, namelist, specidlist, sptlist,templist,removelist=[],[],[],[],[],[],[]
+	chisquare, chilist, namelist, specidlist, sptlist,templist,removelist,gravlist=[],[],[],[],[],[],[],[]
 
 	starting_wl=object[0][0]
 	jump=np.abs((object[0][0]-object[0][1])/2)
@@ -102,8 +113,8 @@ def showme(filepath,short_name,extraction,plot=False):
 		template[1]=template[1]*c
 		template[2]=template[2]*c
 
-		source,spectype=db.list("SELECT spectral_types.source_id, spectral_types.spectral_type from spectral_types join spectra on spectral_types.source_id=spectra.source_id where spectral_types.regime='IR' and spectral_types.adopted=1 and spectral_types.spectral_type>=20 and spectral_types.spectral_type<=30 and spectra.id='{}'".format(j)).fetchone()
-
+# 		source,spectype,gravity=db.list("SELECT spectral_types.source_id, spectral_types.spectral_type,spectral_types.gravity from spectral_types join spectra on spectral_types.source_id=spectra.source_id where spectral_types.regime='IR' and spectral_types.adopted=1 and spectral_types.spectral_type>=20 and spectral_types.spectral_type<=30 and spectra.id='{}'".format(j)).fetchone()
+		source,spectype,gravity=db.list("SELECT spectral_types.source_id, spectral_types.spectral_type,spectral_types.gravity from spectral_types join spectra on spectral_types.source_id=spectra.source_id where spectral_types.adopted=1 and spectra.id='{}'".format(j)).fetchone()
 #!		plot template over object
 		if plot==True:
 			plt.scatter(template[0],template[1], color='red')
@@ -118,17 +129,19 @@ def showme(filepath,short_name,extraction,plot=False):
 		chilist.append(float(chi))
 		specidlist.append(j)
 		templist.append(template)
+		gravlist.append(gravity)
 
-
- 	output = [chilist,namelist,specidlist,sptlist,templist]
+ 	output = [chilist,namelist,specidlist,sptlist,templist,gravlist]
+# 	return output
 	output_sorted = zip(*sorted(zip(*output)))
-	output_table = Table([output_sorted[0],output_sorted[1],output_sorted[2],output_sorted[3],output_sorted[4]],names=('chi_values','source_id','spectra_id','spectral_types','template'), meta={'name':'results from GOF'})
+	output_table = Table([output_sorted[0],output_sorted[1],output_sorted[2],output_sorted[3],output_sorted[4],output_sorted[5]],names=('chi_values','source_id','spectra_id','spectral_types','template','gravity'), meta={'name':'results from GOF'})
 	pickle.dump(output,open('/Users/paigegiorla/Publications/'+'{}'.format(short_name)+'/Results/{}'.format(extraction)+'.pkl','wb'))
 	chisquare=[sptlist,chilist]	
 	print "min chi value = ", output_table[0][0]
 	print "spectral type = ", output_table[0][3]
 	print "source id = ", output_table[0][1]
 	print "spectrum id = ", output_table[0][2]
+	print "young?", output_table[0][5]
 
 	
 	return chisquare, object, output_table

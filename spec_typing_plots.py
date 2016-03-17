@@ -13,17 +13,21 @@ from itertools import cycle
 import astrotools as a	
 import pickle	
 	
-def showme(short_name,extraction,band,chisquare,object,output_table,constraint_on_pfit,order,avg_arr=[]):	
+def showme(short_name,extraction,band,chisquare,object,output_table,spt_range,constraint_on_pfit,order,avg_arr=[]):	
 	'''The plotting code for the spectral typing reduced chi squared routine. This code makes the figure used in the paper
 	output_table=[chilist,namelist,specidlist,sptlist,templist] astropy table
 	If you want to plot the averages of the chisquare values, then run chisquare through m.average_chisq() first and provide here
+	Order can be integer or list of two different orders. If list, constraint_on_pfit needs to be two lists also. 
 	'''
 	plt.figure(figsize=(8,10))
 	gs = gridspec.GridSpec(2, 1, height_ratios=[1,2]) 
 
 # plot the chi square values vs spec type with polynomial fit
+	spt_ticks = []
 	ax1 = plt.subplot(gs[0])
-	Ts=['L9','T0','T1','T2','T3','T4','T5','T6','T7','T8','T9']
+	for spt in np.arange(spt_range[0],spt_range[1]+0.5,1):
+		spt_tick = a.specType(spt)
+		spt_ticks.append(spt_tick)
 
 	if avg_arr:
 		plt.scatter(chisquare[0],chisquare[1],color='gray')
@@ -41,10 +45,10 @@ def showme(short_name,extraction,band,chisquare,object,output_table,constraint_o
 	else:
 		pfit,yfit,chisquare = m.polynomialfit(chisquare,constraint_on_pfit,order)
  		plt.plot(chisquare[0], yfit,'b')
-
-	ax1.set_xlim(19.8,29.2)
- 	plt.locator_params(axis = 'x', nbins = 11)
- 	ax1.set_xticklabels(Ts)
+	
+	ax1.set_xlim(spt_range[0]-0.2,spt_range[1]+0.2)
+ 	ax1.set_xticks(np.arange(spt_range[0],spt_range[1]+0.5,1))
+ 	ax1.set_xticklabels(spt_ticks)
 	plt.xlabel('Spectral Type',fontsize="x-large")
 	plt.ylabel('Reduced Chi Squared',fontsize="x-large")
 
