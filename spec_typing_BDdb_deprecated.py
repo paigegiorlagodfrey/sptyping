@@ -1,7 +1,6 @@
 from __future__ import division
 from BDNYCdb import BDdb
-# db=BDdb.get_db('/Users/paigegiorla/Desktop/PG_DB_2_16_15.db')
-db=BDdb.get_db('/Users/paigegiorla/Dropbox/BDNYCdb/BDNYC.db')
+db=BDdb.get_db('/Users/paigegiorla/Dropbox/BDNYCdb/BDNYCdeprecated.db')
 from matplotlib import pyplot as plt 
 import numpy as np
 from BDNYCdb import utilities as u
