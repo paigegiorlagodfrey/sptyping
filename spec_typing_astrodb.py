@@ -1,6 +1,6 @@
 from __future__ import division
 from astrodbkit import astrodb
-db=astrodb.Database('/Users/paigegiorla/Dropbox/BDNYCdb/BDNYCv1.0.db')
+db=astrodb.Database('/Users/paigegiorla/Dropbox/BDNYCdb/BDNYCdev.db')
 from matplotlib import pyplot as plt 
 import numpy as np
 from BDNYCdb import utilities as u
@@ -99,7 +99,7 @@ def showme(filepath,short_name,extraction,spt_range,plot=False):
 			plt.savefig('/Users/paigegiorla/Publications/'+'{}'.format(short_name)+'/Images/template_over_object/{}'.format(extraction)+'/{}'.format(j)+'.pdf')
 			plt.clf()
 
-		chi=sum(((template[1]-object[1])**2)/((template[2]**2)+(object[2]**2)))/dof     	#both data sets have uncertainties
+		chi = sum(((template[1]-object[1])**2)/((template[2]**2)+(object[2]**2)))/dof     	#both data sets have uncertainties
 		namelist.append(item['s.source_id'])
 		sptlist.append(item['t.spectral_type'])
 		chilist.append(float(chi))

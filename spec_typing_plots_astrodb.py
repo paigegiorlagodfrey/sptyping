@@ -1,6 +1,6 @@
 from __future__ import division
 from astrodbkit import astrodb
-db=astrodb.Database('/Users/paigegiorla/Dropbox/BDNYCdb/BDNYCv1.0.db')
+db=astrodb.Database('/Users/paigegiorla/Dropbox/BDNYCdb/BDNYCdev.db')
 from matplotlib import pyplot as plt 
 import numpy as np
 from BDNYCdb import utilities as u
@@ -24,11 +24,8 @@ def showme(short_name,extraction,band,chisquare,object,output_table,spt_range,co
 	gs = gridspec.GridSpec(2, 1, height_ratios=[1,2]) 
 
 # plot the chi square values vs spec type with polynomial fit
-	spt_ticks = []
 	ax1 = plt.subplot(gs[0])
-	for spt in np.arange(spt_range[0],spt_range[1]+0.5,1):
-		spt_tick = a.specType(spt)
-		spt_ticks.append(spt_tick)
+	spt_ticks = m.xticks(spt_range)
 	
 	chisquare = zip(*sorted(zip(*chisquare)))
 	polyfit_dict = {}
@@ -140,4 +137,5 @@ def showme(short_name,extraction,band,chisquare,object,output_table,spt_range,co
 
 	plt.savefig('/Users/paigegiorla/Publications/'+'{}'.format(short_name)+'/Images/{}_'.format(short_name)+'{}'.format(extraction)+'{}'.format(band)+'.eps')
 	designations = [designation[0][0].split(',')[0],designation_hp[0][0].split(',')[0],designation_hm[0][0].split(',')[0],designation_op[0][0].split(',')[0],designation_om[0][0].split(',')[0],designation_tp[0][0].split(',')[0],designation_tm[0][0].split(',')[0]]
+	plt.clf()
 	return polyfit_dict, designations
