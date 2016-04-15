@@ -52,13 +52,13 @@ def showme(filepath,short_name,extraction,plot=False, M_type= False, L_type=Fals
 #!	get source_id for all T dwarfs from database, turn it into a list and use list to get spectra_id for each source's spex data	
  	M, L, T, Y = [],[],[],[]
 	if M_type==True:
-			M = db.list("select distinct source_id from spectral_types where spectral_type>=0 and spectral_type<=9 and regime='IR' and adopted=1").fetchall()
+			M = db.list("select distinct source_id from spectral_types where spectral_type>=0.0 and spectral_type<=9.0 and regime='IR' and adopted=1").fetchall()
 	if L_type==True:
-			L = db.list("select distinct source_id from spectral_types where spectral_type>=10 and spectral_type<=19 and regime='IR' and adopted=1").fetchall()
+			L = db.list("select distinct source_id from spectral_types where spectral_type>=10.0 and spectral_type<=1.0 and regime='IR' and adopted=1").fetchall()
 	if T_type==True:
-			T = db.list("select distinct source_id from spectral_types where spectral_type>=20 and spectral_type<=29 and regime='IR' and adopted=1").fetchall()
+			T = db.list("select distinct source_id from spectral_types where spectral_type>=20.0 and spectral_type<=29.0 and regime='IR' and adopted=1").fetchall()
 	if Y_type==True:
-			Y = db.list("select distinct source_id from spectral_types where spectral_type>=30 and spectral_type<=39 and regime='IR' and adopted=1").fetchall()
+			Y = db.list("select distinct source_id from spectral_types where spectral_type>=30.0 and spectral_type<=39.0 and regime='IR' and adopted=1").fetchall()
 	sources = M + L + T +  Y
 
 # 	sources=db.list("select distinct source_id from spectral_types where spectral_type>=20 and spectral_type<=30 and regime='IR' and adopted=1").fetchall()
