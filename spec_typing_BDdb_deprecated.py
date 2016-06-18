@@ -22,7 +22,7 @@ def scrub(data):
   data = [i[np.unique(data[0], return_index=True)[1]] for i in data]
   return [i[np.lexsort([data[0]])] for i in data]
   
-def showme(filepath,short_name,extraction,plot=False, M_type= False, L_type=False, T_type=True, Y_type=False,):
+def showme(filepath,short_name,extraction,plot=False, M_type= False, L_type=False, T_type=True, Y_type=False,reduced=False):
 	'''
 		This code will bin down all T dwarfs in database to the wavelength range and resolution of the object called in to question. 
 		It returns the list of the spectral types of all of the T dwarf templates, and their corresponding reduced chi squared fit value.
@@ -50,33 +50,33 @@ def showme(filepath,short_name,extraction,plot=False, M_type= False, L_type=Fals
 
 
 #!	get source_id for all T dwarfs from database, turn it into a list and use list to get spectra_id for each source's spex data	
- 	M, L, T, Y = [],[],[],[]
+ 	M, L, T, Y1, Y2 = [],[],[],[],[]
 	if M_type==True:
 			M = db.list("select distinct source_id from spectral_types where spectral_type>=0.0 and spectral_type<=9.0 and regime='IR' and adopted=1").fetchall()
 	if L_type==True:
-			L = db.list("select distinct source_id from spectral_types where spectral_type>=10.0 and spectral_type<=1.0 and regime='IR' and adopted=1").fetchall()
+			L = db.list("select s.id from spectra as s join spectral_types as st on st.source_id=s.source_id where st.spectral_type between 10.0 and 20.0 and st.regime='OPT' and st.adopted=1 and s.instrument_id=6 and s.mode_id=1").fetchall()
 	if T_type==True:
-			T = db.list("select distinct source_id from spectral_types where spectral_type>=20.0 and spectral_type<=29.0 and regime='IR' and adopted=1").fetchall()
+			T = db.list("select s.id from spectra as s join spectral_types as st on st.source_id=s.source_id where st.spectral_type between 20.0 and 30.0 and st.regime='IR' and st.adopted=1 and s.instrument_id=6 and s.mode_id=1").fetchall()
 	if Y_type==True:
-			Y = db.list("select distinct source_id from spectral_types where spectral_type>=30.0 and spectral_type<=39.0 and regime='IR' and adopted=1").fetchall()
-	sources = M + L + T +  Y
+			Y1= db.list("select s.id from spectra as s join spectral_types as st on st.source_id=s.source_id where st.spectral_type between 30.0 and 39.0 and st.regime='IR' and s.telescope_id=5").fetchall()
+# 			Y2= db.list("select s.id from spectra as s join spectral_types as st on st.source_id=s.source_id where st.spectral_type between 30.0 and 39.0 and st.regime='IR' and s.telescope_id=22").fetchall()
+	sources = M + L + T +  Y1 + Y2
 
 # 	sources=db.list("select distinct source_id from spectral_types where spectral_type>=20 and spectral_type<=30 and regime='IR' and adopted=1").fetchall()
 	sourcelist, ids, idlist=[],[],[]
-	index=0
-	while index<len(sources):
-		sourcelist.append(sources[index][0])
-		index=index+1
-	for i in sourcelist:
-		id=db.list("SELECT distinct id FROM spectra WHERE source_id='{}' AND instrument_id=6 and mode_id=1".format(i)).fetchone()
-		ids.append(id)
+# 	index=0
+# 	while index<len(sources):
+# 		sourcelist.append(sources[index][0])
+# 		index=index+1
+# 	for i in sourcelist:
+# 		id=db.list("SELECT distinct id FROM spectra WHERE source_id='{}' AND instrument_id=6 and mode_id=1".format(i)).fetchone()
+# 		ids.append(id)
 
-	ids=filter(None,ids)	
+	ids = filter(None,sources)	
 	index=0
 	while index<len(ids):
 		idlist.append(ids[index][0])
 		index=index+1		
-
 #!	loop through each object
 	chisquare, chilist, namelist, specidlist, sptlist,templist,removelist,gravlist,shortnames=[],[],[],[],[],[],[],[],[]
 
@@ -87,7 +87,7 @@ def showme(filepath,short_name,extraction,plot=False, M_type= False, L_type=Fals
 
 	object=scrub(object)	
 	dof=len(object[0])-2-1	
-	print "dof=", dof																#DOF is num of wavelength points minus free params (teff and logg) minus 1
+ 	print "dof=", dof																#DOF is num of wavelength points minus free params (teff and logg) minus 1
 	print "# of objects", len(idlist)
 	for j in idlist:
 		name,W,F,U=db.list("SELECT source_id,wavelength,flux,unc from spectra where id={}".format(j)).fetchone()
@@ -97,7 +97,7 @@ def showme(filepath,short_name,extraction,plot=False, M_type= False, L_type=Fals
 		U=U/maxF
 		temp=[W, F, U]
 		template=u.rebin_spec(temp,object[0])
-  		template=[k.value for k in template]
+		template=[k.value for k in template]
 
 #!		plot template over template's original flux
 		if plot==True:
@@ -112,7 +112,7 @@ def showme(filepath,short_name,extraction,plot=False, M_type= False, L_type=Fals
 		template[2]=template[2]*c
 
 # 		source,spectype,gravity=db.list("SELECT spectral_types.source_id, spectral_types.spectral_type,spectral_types.gravity from spectral_types join spectra on spectral_types.source_id=spectra.source_id where spectral_types.regime='IR' and spectral_types.adopted=1 and spectral_types.spectral_type>=20 and spectral_types.spectral_type<=30 and spectra.id='{}'".format(j)).fetchone()
-		source,spectype,gravity,shortname = db.list("SELECT spectral_types.source_id, spectral_types.spectral_type,spectral_types.gravity,sources.shortname from spectral_types join spectra on spectral_types.source_id=spectra.source_id join sources on sources.id=spectral_types.source_id where spectral_types.adopted=1 and spectra.id='{}'".format(j)).fetchone()
+		source,spectype,gravity,shortname = db.list("SELECT spectral_types.source_id, spectral_types.spectral_type,spectral_types.gravity,sources.shortname from spectral_types join spectra on spectral_types.source_id=spectra.source_id join sources on sources.id=spectral_types.source_id where  spectra.id='{}'".format(j)).fetchone()
 #!		plot template over object
 		if plot==True:
 			plt.scatter(template[0],template[1], color='red')
@@ -121,7 +121,10 @@ def showme(filepath,short_name,extraction,plot=False, M_type= False, L_type=Fals
 			plt.savefig('/Users/paigegiorla/Publications/'+'{}'.format(short_name)+'/Images/template_over_object/{}'.format(extraction)+'/{}'.format(j)+'.pdf')
 			plt.clf()
 
-		chi=sum(((template[1]-object[1])**2)/((template[2]**2)+(object[2]**2)))/dof     	#both data sets have uncertainties
+		if reduced:
+			chi=sum(((template[1]-object[1])**2)/((template[2]**2)+(object[2]**2)))/dof     	#both data sets have uncertainties
+		else:
+			chi=sum(((template[1]-object[1])**2)/((template[2]**2)+(object[2]**2)))     	#both data sets have uncertainties
 		namelist.append(source)
 		sptlist.append(spectype)
 		chilist.append(float(chi))
@@ -129,17 +132,18 @@ def showme(filepath,short_name,extraction,plot=False, M_type= False, L_type=Fals
 		templist.append(template)
 		gravlist.append(gravity)
 		shortnames.append(shortname)
+
  	output = [chilist,namelist,specidlist,sptlist,templist,gravlist,shortnames]
-# 	return output
-	output_sorted = zip(*sorted(zip(*output)))
-	output_table = Table([output_sorted[0],output_sorted[1],output_sorted[2],output_sorted[3],output_sorted[4],output_sorted[5],output_sorted[6]],names=('chi_values','source_id','spectra_id','spectral_types','template','gravity','shortnames'), meta={'name':'results from GOF'})
-	pickle.dump(output,open('/Users/paigegiorla/Publications/'+'{}'.format(short_name)+'/Results/{}'.format(extraction)+'.pkl','wb'))
+	output_table = Table([chilist,namelist,specidlist,sptlist,templist,gravlist,shortnames],names=('chi_values','source_id','spectra_id','spectral_types','template','gravity','shortnames'), meta={'name':'results from GOF'})
+	output_table.sort('chi_values')
+	pickle.dump(output_table,open('/Users/paigegiorla/Publications/'+'{}'.format(short_name)+'/Results/{}'.format(extraction)+'.pkl','wb'))
+
 	chisquare=[sptlist,chilist]	
+	print "# of objects fit = ", len(output_table)
 	print "min chi value = ", output_table[0][0]
 	print "spectral type = ", output_table[0][3]
 	print "source id = ", output_table[0][1]
 	print "spectrum id = ", output_table[0][2]
 	print "young?", output_table[0][5]
-
 	
 	return chisquare, object, output_table

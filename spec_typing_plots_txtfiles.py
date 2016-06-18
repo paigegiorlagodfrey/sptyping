@@ -1,6 +1,6 @@
 from __future__ import division
-from BDNYCdb import BDdb
-db=BDdb.get_db('/Users/paigegiorla/Dropbox/BDNYCdb/BDNYCdeprecated.db')
+from astrodbkit import astrodb
+db=astrodb.Database('/Users/paigegiorla/Dropbox/BDNYCdb/BDNYCdev.db')
 from matplotlib import pyplot as plt 
 import numpy as np
 from BDNYCdb import utilities as u
@@ -11,32 +11,33 @@ from matplotlib import gridspec
 from itertools import cycle
 import astrotools as a	
 import pickle	
+from astropy.table import Table
 	
-def showme(short_name,extraction,band,chisquare,object,output_table,spt_range,constraint_on_pfit,order,best_spt,next_best,avg_arr=[],plot_polyfit_avg=True,plot_polyfit=False,plot_err=True):	
+def showme(short_name,extraction,band,chisquare,object,output_table,spt_range,constraint_on_pfit,order,avg_arr=[],plot_polyfit_avg=True,plot_polyfit=False):	
 	'''The plotting code for the spectral typing reduced chi squared routine. This code makes the figure used in the paper
 	output_table=[chilist,namelist,specidlist,sptlist,templist] astropy table
 	If you want to plot the averages of the chisquare values, then run chisquare through m.average_chisq() first and provide here
 	Order can be integer or list of two different orders. If list, constraint_on_pfit needs to be two lists also. 
+	Half, one, two are the spectral types above/below the object's projected type that you choose to plot against it for visual comparison 
 	'''
 	plt.figure(figsize=(8,10))
 	gs = gridspec.GridSpec(2, 1, height_ratios=[1,2]) 
 
 # plot the chi square values vs spec type with polynomial fit
-	spt_ticks = []
 	ax1 = plt.subplot(gs[0])
-	for spt in np.arange(spt_range[0],spt_range[1]+0.5,1):
-		spt_tick = a.specType(spt)
-		spt_ticks.append(spt_tick)
-
+	spt_ticks = m.xticks(spt_range)
+	
 	chisquare = zip(*sorted(zip(*chisquare)))
 	polyfit_dict = {}
-
+	output_table.sort('spectral_types')
 
 	for i in range(len(chisquare[0])):
-		if output_table[i][5] == None or output_table[i][5] == '':
+		if output_table[i][3] == 'f':
+			print 'f:',output_table[i][3], output_table[i][1],chisquare[0][i]
 			plt.scatter(chisquare[0][i],chisquare[1][i], color='gray')
 		else:	
-			plt.scatter(chisquare[0][i],chisquare[1][i], color='g')
+			print 'else:',output_table[i][3], output_table[i][1],chisquare[0][i]
+			plt.scatter(chisquare[0][i],chisquare[1][i], color='orange')
 	if plot_polyfit==True:	
 		if isinstance(order,list):
 			pfit_1,yfit_1,chisquare_1 = m.polynomialfit(chisquare,constraint_on_pfit[0],order[0])
@@ -71,16 +72,7 @@ def showme(short_name,extraction,band,chisquare,object,output_table,spt_range,co
 				plt.plot(avg_arr[0], yfit,'c',linestyle='--',linewidth=1.85)
 				polyfit_dict['pfit_avg_{}'.format(order)] = pfit
 				polyfit_dict['yfit_avg_{}'.format(order)] = yfit
-
-	if plot_err:
-		accepted, line_min, line_acc, nsteps = m.chisq_err(chisquare)
-		print accepted
-		xaxis = np.arange(spt_range[0],spt_range[1]+1,1)
-		plt.plot(xaxis,[line_min[0]]*len(xaxis),'r',linestyle='--',linewidth=0.15)
-		plt.plot(xaxis,[line_acc[0]]*len(xaxis),'r',linestyle='--',linewidth=0.15)
-# 		plt.fill_between(nsteps,line_acc,line_min,facecolor='y',alpha=0.5)
-		
-
+	
 	xmin = spt_range[0]
 	xmax = spt_range[1]
 	ax1.set_xlim(xmin-0.2,xmax+0.2)
@@ -96,45 +88,41 @@ def showme(short_name,extraction,band,chisquare,object,output_table,spt_range,co
 	plt.xlabel('Spectral Type',fontsize="x-large")
 	plt.ylabel('Chi Squared',fontsize="x-large")
 	plt.tight_layout()
-	
+
 # plot the object in question
 	ax2 = plt.subplot(gs[1])
 	lamb=np.gradient(object[0])
-	xer=lamb[0]/2
+	xer=lamb/2
 	plt.errorbar(object[0],object[1],xerr=xer,yerr=object[2],fmt=None,ecolor='k',marker='o',label='{}'.format(short_name))
 
 
-# plot a spectrum from half and one plus/minus the spectral type of the best fitting template and one earlier and later types for show
-	
-	colors = ['#80CC80','#009900','#004C00','#000080','#0000FF','#8080FF',]
-	linestyles = [':','-.','--','--','-.',':']
-	linewidths = [1.5,1.5,1.5,1.5,1.5,1.85,1.85]
-	
-	for i in range(len(next_best)):
-		try:
-			s = output_table[next(n for n in range(len(output_table)) if output_table[n][3]==next_best[i])]
-			designation = db.list("select names from sources where id={}".format(s[1])).fetchone()
-			spectype = u.specType(s[3])
-			plt.plot(s[4][0],s[4][1],linestyle=linestyles[i],color=colors[i],linewidth=linewidths[i],label='{}, {}'.format(spectype,s[6]))
-		except: print 'no:', next_best[i]
+# plot L5f,L6f,L7f,L8f
 
-	# plot the best fitting spectrum template 	
-	best = output_table[next(n for n in range(len(output_table)) if output_table[n][3]==best_spt)]
-	designation = db.list("select names from sources where id={}".format(best[1])).fetchone()
-	spectype = u.specType(best[3])	
-	plt.plot(best[4][0],best[4][1],color='r', linewidth=2,label='{}, {}'.format(spectype,best[6]))
-
+	five = output_table[next(n for n in range(len(output_table)) if (output_table[n][1]==15.0 and output_table[n][3]=='g'))]
+	spectype = a.specType(five[1])
+	plt.plot(five[2][0],five[2][1],color='r',linewidth=1.85,label='{}, {}'.format(spectype,five[3]))
+	five_2 = output_table[next(n for n in range(len(output_table)) if (output_table[n][1]==15.0 and output_table[n][3]=='f'))]
+	spectype = a.specType(five_2[1])
+	plt.plot(five_2[2][0],five_2[2][1],color='m',linewidth=1.85,label='{}, {}'.format(spectype,five_2[3]))
+	six = output_table[next(n for n in range(len(output_table)) if output_table[n][1]==16.0)]
+	spectype = a.specType(six[1])
+	plt.plot(six[2][0],six[2][1],linestyle='--',color='#004C00',linewidth=1.5,label='{}, {}'.format(spectype,six[3]))
+	seven = output_table[next(n for n in range(len(output_table)) if output_table[n][1]==17.0)]
+	spectype = a.specType(seven[1])
+	plt.plot(seven[2][0],seven[2][1],linestyle='-.',color='#009900',linewidth=1.5,label='{}, {}'.format(spectype,seven[3]))
+	eight = output_table[next(n for n in range(len(output_table)) if output_table[n][1]==18.0)]
+	spectype = a.specType(eight[1])
+	plt.plot(eight[2][0],eight[2][1],linestyle=':',color='#8080FF',linewidth=1.85,label='{}, {}'.format(spectype,eight[3]))
+ 	
 	plt.legend( loc='best',fontsize=2,prop={'size':9.8}, ncol=1, numpoints=1)
 	plt.xlabel(r'Wavelength ($\mu$m)', fontsize="x-large")
 	plt.ylabel(r' Normalized Flux Density', fontsize="x-large")
 	plt.tick_params(labelsize="large")
  	plt.ylim(0.001,1.1)
  	plt.xlim(min(object[0])-0.01,max(object[0])+0.01)
- 	
+
 	pickle.dump(polyfit_dict,open('/Users/paigegiorla/Publications/'+'{}'.format(short_name)+'/Results/polynomial_{}'.format(extraction)+'.pkl','wb'))
 
 	plt.savefig('/Users/paigegiorla/Publications/'+'{}'.format(short_name)+'/Images/{}_'.format(short_name)+'{}'.format(extraction)+'{}'.format(band)+'.eps')
-# 	designations = [designation[0].split(',')[0],designation_hp[0].split(',')[0],designation_hm[0].split(',')[0],designation_op[0].split(',')[0],designation_om[0].split(',')[0],designation_tp[0].split(',')[0],designation_tm[0].split(',')[0]]
 	plt.clf()
 	return polyfit_dict
-# 	return polyfit_dict, designations
