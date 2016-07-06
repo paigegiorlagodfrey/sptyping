@@ -24,19 +24,19 @@ def scrub(data):
   return [i[np.lexsort([data[0]])] for i in data]
 
 
-def txtfile_obj(shortname='1741-4642',spt=17.0,g='candidate',filepath='/Users/paigegiorla/Desktop/1741-4642.txt'):
-	object_file=open('{}'.format(filepath), 'rb').readlines()
-	W_obj,F_obj,U_obj,txt = [],[],[],[]
-	for line in object_file:
-		columns=line.split()
-		wav=float(columns[0])
-		flu=float(columns[1])
-		un=float(columns[2])
-		W_obj.append(wav) ; F_obj.append(flu) ; U_obj.append(un)
-	spec = [W_obj,F_obj,U_obj]
-	
-	txt.append({'s.id':'txt','s.source_id':1628,'c.shortname':shortname,'t.spectral_type':spt,'t.gravity':g,'s.spectrum':spec})
-	
+def txtfile_obj(shortname=['1741-4642','1516+3053'],spt=[17.0,20.5],source_id=[1628,1423],g=['candidate','None'],filepath=['/Users/paigegiorla/Code/Data/1741-4642.txt','/Users/paigegiorla/Code/Data/SDSSJ1516+30.txt']):
+	txt=[]
+	for i in range(len(filepath)):
+		object_file = open('{}'.format(filepath[i]), 'rb').readlines()
+		W_obj,F_obj,U_obj = [],[],[]
+		for line in object_file:
+			columns=line.split()
+			wav=float(columns[0])
+			flu=float(columns[1])
+			un=float(columns[2])
+			W_obj.append(wav) ; F_obj.append(flu) ; U_obj.append(un)
+		spec = [W_obj,F_obj,U_obj]
+		txt.append({'s.id':'txt','s.source_id':source_id[i],'c.shortname':shortname[i],'t.spectral_type':spt[i],'t.gravity':g[i],'s.spectrum':spec})
 	return txt
 
   
@@ -110,7 +110,7 @@ def showme(filepath,short_name,extraction,spt_range,norm_to,plot=False,reduced=F
 				W,F,U = item['s.spectrum'].data
 			else:
 				W,F,U = item['s.spectrum']
-
+				
 			W,F,U = scrub([W,F,U])
 
 			temp = [W,F,U]
